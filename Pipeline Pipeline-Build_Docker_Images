@@ -1,0 +1,33 @@
+node{
+    stage('SCM Checkout'){
+        
+       git branch: 'master', 
+       credentialsId: 'ksrajiba-git', 
+       url: 'https://github.com/ksrajiba/myweb.git'
+        
+    }
+    stage('Maven Package'){
+        def mvnHome = tool name: 'maven3', type: 'maven'
+        def mvnCMD = "${mvnHome}/bin/mvn"
+        sh "${mvnCMD} clean package"
+    }
+    stage('Build Docker images'){
+        sh 'docker build -t rajibaks/myweb:1.0.0 .'
+        
+    }
+    stage('Push Docker Image to Docker Hub'){
+        
+        withCredentials([string(credentialsId: 'docker-pwd', variable: 'DockerHubPwd')]) {
+        sh "docker login -u rajibaks -p ${DockerHubPwd}"
+    }
+        sh 'docker push rajibaks/myweb:1.0.0'
+        
+    }
+    stage('Run docker container in dev server'){
+     def dockerRun = 'docker run -d -p 8080:8080 --name myweb rajibaks/myweb:1.0.0'   
+     sshagent(['container-server']) {
+     sh "ssh -o StrictHostKeyChecking=no ec2-user@13.232.168.217 ${dockerRun}"
+    }
+   
+    }    
+}

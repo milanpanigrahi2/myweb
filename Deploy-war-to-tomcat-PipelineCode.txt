@@ -1,0 +1,30 @@
+
+	
+node{
+    stage('SCM Checkout'){
+        
+       git branch: 'master', 
+       credentialsId: 'ksrajiba-git', 
+       url: 'https://github.com/ksrajiba/myweb.git'
+        
+    }
+    stage('Maven Build'){
+        
+        sh label: 'maven', script: 'mvn clean package'
+    }
+    stage('Deploy to tomcat Using SSH Agent'){
+    sshagent(['tomcat-deploy']){
+    
+      sh """ 
+          ssh ec2-user@13.233.127.110 /opt/tomcat8/bin/shutdown.sh
+          scp -o StrictHostKeyChecking=no target/*.war ec2-user@13.233.127.110:/opt/tomcat8/webapps/
+	  ssh ec2-user@13.233.127.110 /opt/tomcat8/bin/startup.sh
+	 """
+      //sh 'scp -o StrictHostKeyChecking=no target/*.war ec2-user@13.233.127.110:/opt/tomcat8/webapps/'
+      }
+    
+    }
+}
+
+		
+		
